@@ -11,5 +11,5 @@ use clap::Parser;
 /// 
 pub struct Args {
     /// The files to apply syntax highlighting to
-    files: Vec<String>,
+    pub files: Vec<String>,
 }
