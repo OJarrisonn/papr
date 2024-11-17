@@ -6,6 +6,7 @@ description = "A simple CLI syntax highlighting tool for email files"
 repository = "https://github.com/OJarrisonn/papr"
 
 [dependencies]
+chrono = "0.4.38"
 clap = { version = "4.5.21", features = ["derive"] }
 
 [lints.rust]
