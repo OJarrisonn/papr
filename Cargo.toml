@@ -1,0 +1,10 @@
+[package]
+name = "papr"
+version = "0.1.0"
+edition = "2021"
+description = "A simple CLI syntax highlighting tool for email files"
+repository = "https://github.com/OJarrisonn/papr"
+
+[dependencies]
+
+[lints.rust]
