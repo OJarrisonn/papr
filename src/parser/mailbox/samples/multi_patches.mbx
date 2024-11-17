@@ -1,0 +1,73 @@
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH v1 1/10] patch-tree: foo message
+From: John Doe <"john.doe at email.com">
+Date: Fri, 08 Jun 2022 12:00:01 -0300
+Message-Id: <20220608-john-doe@email.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+This is an example message
+
+Long message body 
+with multiple lines in the same paragraph
+
+Another paragraph
+
+Signed-off-by: John Doe <john.doe(a)email.com>
+---
+ test/file.c | 69 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 69 insertions(+)
+--
+1.1.1
+
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH v1 1/10] patch-tree: foo2 message
+From: John Doew <"john.doe at email.com">
+Date: Fri, 08 Jun 2022 12:00:01 -0300
+Message-Id: <20220608-john-doe@email.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+This is an example message
+
+Long message body 
+with multiple lines in the same paragraph
+
+Another paragraph
+
+Signed-off-by: John Doe <john.doe(a)email.com>
+---
+ test/file.c | 69 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 69 insertions(+)
+
+--
+
+--
+2.30.0
+
+
+
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH v1 1/10] patch-tree: foo3 message
+From: John Doe <"john.doe at email.com">
+Date: Fri, 08 Jun 2022 12:00:01 -0300
+Message-Id: <20220608-john-doe@email.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+This is an example message
+
+Long message body 
+with multiple lines in the same paragraph
+
+Another paragraph
+
+Signed-off-by: John Doe <john.doe(a)email.com>
+---
+ test/file.c | 69 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 69 insertions(+)
+--
+2.1.1
