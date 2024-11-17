@@ -1,4 +1,4 @@
-use std::{error::Error, path::Path};
+use std::{error::Error, io::{stdin, Read}, path::Path};
 
 use clap::Parser;
 use cli::Args;
@@ -8,12 +8,16 @@ pub mod cli;
 fn main() -> Result<(), Box<dyn Error>> {
     let Args { files } = Args::parse();
 
-    if files.is_empty() {
-        eprintln!("papr: no files specified STDIN not supported yet");
-        return Ok(());
-    }
+    // If no files are provided, read from STDIN
+    let files = if files.is_empty() {
+        let mut content = String::new();
 
-    let files = read_all(files)?;
+        stdin().read_to_string(&mut content)?;
+
+        vec![("STDIN".to_string(), content)]
+    } else {
+        read_all(files)?
+    };
 
     for (path, content) in files {
         let mailbox = papr::parser::mailbox::Mailbox::try_from(content.as_str())?;
