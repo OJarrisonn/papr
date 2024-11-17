@@ -69,7 +69,7 @@ mod tests {
 
     #[test]
     fn find_messages() {
-        let input = include_str!("../tests/samples/multi_foo_messages.mbx");
+        let input = include_str!("samples/multi_foo_messages.mbx");
 
         let first_message = find_next_message(input, 0);
         assert!(first_message.is_some());
