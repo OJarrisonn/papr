@@ -1,5 +1,7 @@
 use chrono::{DateTime, Utc};
+use header::Header;
 
+pub mod header;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// Represents the mailer line of a message it is used to identify where a new message starts
@@ -18,7 +20,7 @@ pub struct Mailer<'input> {
 /// Is composed of a mailer line, a list of headers and a body
 pub struct Message<'input> {
     pub mailer: Option<Mailer<'input>>,
-    pub headers: Vec<(&'input str, &'input str)>,
+    pub headers: Vec<Header<'input>>,
     pub body: &'input str
 }
 
@@ -48,7 +50,7 @@ impl<'input> TryFrom<&'input str> for Message<'input> {
             let mut parts = line.splitn(2, ':');
             let key = parts.next().unwrap().trim();
             let value = parts.next().unwrap_or("").trim();
-            headers.push((key, value));
+            headers.push((key, value).try_into()?);
         }
 
         Ok(Message { mailer, headers, body })
@@ -121,13 +123,13 @@ mod tests {
         assert_eq!(message.mailer.unwrap().daemon, "git@z");
 
         assert_eq!(message.headers.len(), 7);
-        assert_eq!(message.headers[0], ("Subject", "[PATCH v1 1/10] patch-tree: foo message"));
-        assert_eq!(message.headers[1], ("From", "John Doe <\"john.doe at email.com\">"));
-        assert_eq!(message.headers[2], ("Date", "Fri, 08 Jun 2022 12:00:01 -0300"));
-        assert_eq!(message.headers[3], ("Message-Id", "<20220608-john-doe@email.com>"));
-        assert_eq!(message.headers[4], ("MIME-Version", "1.0"));
-        assert_eq!(message.headers[5], ("Content-Type", "text/plain; charset=\"utf-8\""));
-        assert_eq!(message.headers[6], ("Content-Transfer-Encoding", "7bit"));
+        assert_eq!(message.headers[0], ("Subject", "[PATCH v1 1/10] patch-tree: foo message").try_into().unwrap());
+        assert_eq!(message.headers[1], ("From", "John Doe <\"john.doe at email.com\">").try_into().unwrap());
+        assert_eq!(message.headers[2], ("Date", "Fri, 08 Jun 2022 12:00:01 -0300").try_into().unwrap());
+        assert_eq!(message.headers[3], ("Message-Id", "<20220608-john-doe@email.com>").try_into().unwrap());
+        assert_eq!(message.headers[4], ("MIME-Version", "1.0").try_into().unwrap());
+        assert_eq!(message.headers[5], ("Content-Type", "text/plain; charset=\"utf-8\"").try_into().unwrap());
+        assert_eq!(message.headers[6], ("Content-Transfer-Encoding", "7bit").try_into().unwrap());
 
         let break_point = include_str!("samples/single_patch.mbx").find("\n\n").unwrap_or(include_str!("samples/single_patch.mbx").len());
         assert_eq!(message.body, &include_str!("samples/single_patch.mbx")[break_point..]);
