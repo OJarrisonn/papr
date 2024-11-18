@@ -1,6 +1,7 @@
 use std::fmt::Display;
 
 use chrono::{DateTime, Utc};
+use color_eyre::eyre::{bail, Context};
 use header::Header;
 
 pub mod header;
@@ -27,7 +28,7 @@ pub struct Message<'input> {
 }
 
 impl<'input> TryFrom<&'input str> for Message<'input> {
-    type Error = String;
+    type Error = color_eyre::Report;
 
     fn try_from(value: &'input str) -> Result<Self, Self::Error> {
         let mut lines = value.lines();
@@ -35,12 +36,12 @@ impl<'input> TryFrom<&'input str> for Message<'input> {
         let mut body = "";
 
         if lines.clone().count() == 0 {
-            return Err("Empty message".to_string());
+            bail!("Empty message");
         }
 
         let mailer = lines
             .next()
-            .map(|line| Mailer::try_from(line))
+            .map(|line| Mailer::try_from(line).with_context(|| format!("Parsing mailer line `{}`", line.trim())))
             .transpose()?;
 
         for line in lines {
@@ -53,7 +54,7 @@ impl<'input> TryFrom<&'input str> for Message<'input> {
             let mut parts = line.splitn(2, ':');
             let key = parts.next().unwrap().trim();
             let value = parts.next().unwrap_or("").trim();
-            headers.push((key, value).try_into()?);
+            headers.push((key, value).try_into().with_context(|| format!("Parsing header line `{}` from message", line.trim()))?);
         }
 
         Ok(Message {
@@ -75,7 +76,7 @@ impl Display for Message<'_> {
 }
 
 impl<'input> TryFrom<&'input str> for Mailer<'input> {
-    type Error = String;
+    type Error = color_eyre::Report;
 
     fn try_from(value: &'input str) -> Result<Self, Self::Error> {
         let value = value.trim();
@@ -85,14 +86,14 @@ impl<'input> TryFrom<&'input str> for Mailer<'input> {
             .collect::<Vec<_>>();
 
         if parts.len() < 7 {
-            return Err(format!("Invalid mailer line: {}", value));
+            bail!("Invalid mailer line: {}", value);
         }
 
         if parts[0] != "From" {
-            return Err(format!(
+            bail!(
                 "Invalid mailer line: {}. Should start with `From `",
                 value
-            ));
+            );
         }
 
         let daemon = parts[1];
@@ -103,8 +104,7 @@ impl<'input> TryFrom<&'input str> for Mailer<'input> {
             parts[2], parts[3], parts[4], parts[5], parts[6]
         );
         let date = DateTime::parse_from_str(&date, "%a %b %e %H:%M:%S %Y %z")
-            .map(|d| d.with_timezone(&Utc))
-            .map_err(|e| format!("Invalid date: {}", e))?;
+            .map(|d| d.with_timezone(&Utc))?;
 
         Ok(Mailer { daemon, date })
     }

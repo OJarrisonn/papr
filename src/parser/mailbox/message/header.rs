@@ -1,15 +1,16 @@
 use std::fmt::Display;
 
 use chrono::{DateTime, Utc};
+use color_eyre::eyre::{bail, eyre, Context};
 use color_print::{cformat, cwrite};
 use regex::Regex;
 
 const PERSON_REGEX: &str =
     r"(?P<name>\w+(\s\w+)*)\s*<(?P<email>[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)>";
-const PERSON_NO_NAME_REGEX: &str = r"<(?P<email>[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)>";
+const PERSON_NO_NAME_REGEX: &str = r"<?(?P<email>[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)>?";
 const PERSON_AT_REGEX: &str = r#"(?P<name>\w+(\s\w+)*)\s*at\s*<"(?P<email>[a-zA-Z0-9_.+-]+ at [a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)">"#;
 const PERSON_AT_NO_NAME_REGEX: &str =
-    r#""(?P<email>[a-zA-Z0-9_.+-]+ at [a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)""#;
+    r#"<?"(?P<email>[a-zA-Z0-9_.+-]+ at [a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)">?"#;
 
 const PATCH_SUBJECT_REGEX: &str = r"^\[PATCH( v(?P<version>\d+))? (?P<index>\d+)/(?P<total>\d+)\] (?P<tags>([^:]+:)*)(?P<description>.+)$";
 const TAGGED_SUBJECT_REGEX: &str = r"^(?P<tags>([^:]+:)+)(?P<description>.+)$";
@@ -25,21 +26,21 @@ pub enum Header<'input> {
 }
 
 impl<'input> TryFrom<(&'input str, &'input str)> for Header<'input> {
-    type Error = String;
+    type Error = color_eyre::Report;
 
     fn try_from(value: (&'input str, &'input str)) -> Result<Self, Self::Error> {
         let (key, value) = value;
         let lkey = key.to_lowercase();
 
         match lkey.as_str() {
-            "from" => Ok(Header::From(value.try_into()?)),
+            "from" => Ok(Header::From(value.try_into().with_context(|| format!("Parsing `From` header in message frontmatter from `{}`", value))?)),
             "date" => Ok(Header::Date(
                 DateTime::parse_from_rfc2822(value)
-                    .map_err(|e| e.to_string())
-                    .map(|dt| dt.to_utc())?,
+                    .map(|dt| dt.to_utc())
+                    .with_context(|| format!("Parsing `Date` header in message frontmatter from `{}`", value))?,
             )),
-            "author" => Ok(Header::Author(value.try_into()?)),
-            "subject" => Ok(Header::Subject(value.try_into()?)),
+            "author" => Ok(Header::Author(value.try_into().with_context(|| format!("Parsing `Author` header in message frontmatter from `{}`", value))?)),
+            "subject" => Ok(Header::Subject(value.try_into().with_context(|| format!("Parsing `Subject` header in message frontmatter from `{}`", value))?)),
             _ => Ok(Header::Other(key, value)),
         }
     }
@@ -64,7 +65,7 @@ pub struct Person<'input> {
 }
 
 impl<'input> TryFrom<&'input str> for Person<'input> {
-    type Error = String;
+    type Error = color_eyre::Report;
 
     fn try_from(value: &'input str) -> Result<Self, Self::Error> {
         let re_person = Regex::new(PERSON_REGEX).unwrap();
@@ -77,12 +78,12 @@ impl<'input> TryFrom<&'input str> for Person<'input> {
             .or_else(|| re_person_no_name.captures(value))
             .or_else(|| re_person_at.captures(value))
             .or_else(|| re_person_at_no_name.captures(value))
-            .ok_or("Invalid person")?;
+            .ok_or(eyre!("Invalid person in `{}`. A person must have an email and optionally a name", value))?;
 
         let name = captures.name("name").map(|name| name.as_str());
         let email = captures
             .name("email")
-            .ok_or("Invalid email")?
+            .ok_or(eyre!("Invalid email in `{}`. A email must be surrounded by `< >` and contain an `@` or ` at `(must be double quoted in this case)", value))?
             .as_str()
             .try_into()?;
 
@@ -107,7 +108,7 @@ pub struct Email<'input> {
 }
 
 impl<'input> TryFrom<&'input str> for Email<'input> {
-    type Error = String;
+    type Error = color_eyre::Report;
 
     fn try_from(value: &'input str) -> Result<Self, Self::Error> {
         let parts: Vec<&str> = if value.contains('@') {
@@ -117,7 +118,7 @@ impl<'input> TryFrom<&'input str> for Email<'input> {
         };
 
         if parts.len() != 2 {
-            return Err(format!("Invalid email {}", value));
+            bail!("Invalid email {}", value);
         }
 
         Ok(Email {
@@ -149,7 +150,7 @@ pub enum Subject<'input> {
 }
 
 impl<'input> TryFrom<&'input str> for Subject<'input> {
-    type Error = String;
+    type Error = color_eyre::Report;
 
     fn try_from(value: &'input str) -> Result<Self, Self::Error> {
         let re_patch = Regex::new(PATCH_SUBJECT_REGEX).unwrap();
@@ -171,8 +172,8 @@ impl<'input> TryFrom<&'input str> for Subject<'input> {
                 .flatten();
             let tags = captures
                 .name("tags")
-                .ok_or("Invalid tags")?
-                .as_str()
+                .map(|m| m.as_str())
+                .unwrap_or("")
                 .split(':')
                 .map(|s| s.trim())
                 .filter(|s| !s.is_empty())
@@ -181,7 +182,7 @@ impl<'input> TryFrom<&'input str> for Subject<'input> {
                 .name("description")
                 .map(|d| d.as_str())
                 .map(|s| s.trim())
-                .ok_or("Invalid description")?;
+                .ok_or(eyre!("Invalid description"))?;
 
             let index = match (base, total) {
                 (Some(base), Some(total)) => Some((base, total)),
@@ -196,7 +197,7 @@ impl<'input> TryFrom<&'input str> for Subject<'input> {
         } else if let Some(captures) = re_tagged.captures(value) {
             let tags = captures
                 .name("tags")
-                .ok_or("Invalid tags")?
+                .ok_or(eyre!("Invalid tags in `{}`. Tags are separated by `:` before the actual description", value))?
                 .as_str()
                 .split(':')
                 .map(|s| s.trim())
@@ -206,7 +207,7 @@ impl<'input> TryFrom<&'input str> for Subject<'input> {
                 .name("description")
                 .map(|d| d.as_str())
                 .map(|s| s.trim())
-                .ok_or("Invalid description")?;
+                .ok_or(eyre!("Invalid description"))?;
 
             Ok(Subject::Tagged { tags, description })
         } else if let Some(captures) = re_simple.captures(value) {
@@ -214,11 +215,11 @@ impl<'input> TryFrom<&'input str> for Subject<'input> {
                 .name("description")
                 .map(|d| d.as_str())
                 .map(|s| s.trim())
-                .ok_or("Invalid description")?;
+                .ok_or(eyre!("Invalid description"))?;
 
             Ok(Subject::Simple(description))
         } else {
-            Err("Invalid subject".to_string())
+            bail!("Invalid subject `{}`", value);
         }
     }
 }
@@ -241,7 +242,7 @@ impl Display for Subject<'_> {
                     .map(|(i, t)| cformat!(" <r>{}/{}</r>", i, t))
                     .unwrap_or_default();
                 let tags = if tags.len() > 0 {
-                    tags.join(": ") + ": "
+                    format!("|{}| ", tags.join("|"))
                 } else {
                     "".to_string()
                 };

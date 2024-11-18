@@ -12,7 +12,7 @@ pub struct Mailbox<'input> {
 }
 
 impl<'input> TryFrom<&'input str> for Mailbox<'input> {
-    type Error = String;
+    type Error = color_eyre::Report;
 
     fn try_from(input: &'input str) -> Result<Self, Self::Error> {
         let messages = utils::capture_messages(input)
