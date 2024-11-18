@@ -17,12 +17,13 @@ fn main() -> Result<()> {
     let files = if files.is_empty() {
         let mut content = String::new();
 
-        stdin().read_to_string(&mut content).with_context(|| "Failed to read input from STDIN")?;
+        stdin()
+            .read_to_string(&mut content)
+            .with_context(|| "Failed to read input from STDIN")?;
 
         vec![("STDIN".to_string(), content)]
     } else {
-        read_all(files)
-            .with_context(|| "While opening files")?
+        read_all(files).with_context(|| "While opening files")?
     };
 
     for (path, content) in files {

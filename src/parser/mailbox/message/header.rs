@@ -33,14 +33,34 @@ impl<'input> TryFrom<(&'input str, &'input str)> for Header<'input> {
         let lkey = key.to_lowercase();
 
         match lkey.as_str() {
-            "from" => Ok(Header::From(value.try_into().with_context(|| format!("Parsing `From` header in message frontmatter from `{}`", value))?)),
+            "from" => Ok(Header::From(value.try_into().with_context(|| {
+                format!(
+                    "Parsing `From` header in message frontmatter from `{}`",
+                    value
+                )
+            })?)),
             "date" => Ok(Header::Date(
                 DateTime::parse_from_rfc2822(value)
                     .map(|dt| dt.to_utc())
-                    .with_context(|| format!("Parsing `Date` header in message frontmatter from `{}`", value))?,
+                    .with_context(|| {
+                        format!(
+                            "Parsing `Date` header in message frontmatter from `{}`",
+                            value
+                        )
+                    })?,
             )),
-            "author" => Ok(Header::Author(value.try_into().with_context(|| format!("Parsing `Author` header in message frontmatter from `{}`", value))?)),
-            "subject" => Ok(Header::Subject(value.try_into().with_context(|| format!("Parsing `Subject` header in message frontmatter from `{}`", value))?)),
+            "author" => Ok(Header::Author(value.try_into().with_context(|| {
+                format!(
+                    "Parsing `Author` header in message frontmatter from `{}`",
+                    value
+                )
+            })?)),
+            "subject" => Ok(Header::Subject(value.try_into().with_context(|| {
+                format!(
+                    "Parsing `Subject` header in message frontmatter from `{}`",
+                    value
+                )
+            })?)),
             _ => Ok(Header::Other(key, value)),
         }
     }
@@ -78,7 +98,10 @@ impl<'input> TryFrom<&'input str> for Person<'input> {
             .or_else(|| re_person_no_name.captures(value))
             .or_else(|| re_person_at.captures(value))
             .or_else(|| re_person_at_no_name.captures(value))
-            .ok_or(eyre!("Invalid person in `{}`. A person must have an email and optionally a name", value))?;
+            .ok_or(eyre!(
+                "Invalid person in `{}`. A person must have an email and optionally a name",
+                value
+            ))?;
 
         let name = captures.name("name").map(|name| name.as_str());
         let email = captures
@@ -197,7 +220,10 @@ impl<'input> TryFrom<&'input str> for Subject<'input> {
         } else if let Some(captures) = re_tagged.captures(value) {
             let tags = captures
                 .name("tags")
-                .ok_or(eyre!("Invalid tags in `{}`. Tags are separated by `:` before the actual description", value))?
+                .ok_or(eyre!(
+                    "Invalid tags in `{}`. Tags are separated by `:` before the actual description",
+                    value
+                ))?
                 .as_str()
                 .split(':')
                 .map(|s| s.trim())

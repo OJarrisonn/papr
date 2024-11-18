@@ -41,7 +41,10 @@ impl<'input> TryFrom<&'input str> for Message<'input> {
 
         let mailer = lines
             .next()
-            .map(|line| Mailer::try_from(line).with_context(|| format!("Parsing mailer line `{}`", line.trim())))
+            .map(|line| {
+                Mailer::try_from(line)
+                    .with_context(|| format!("Parsing mailer line `{}`", line.trim()))
+            })
             .transpose()?;
 
         for line in lines {
@@ -54,7 +57,11 @@ impl<'input> TryFrom<&'input str> for Message<'input> {
             let mut parts = line.splitn(2, ':');
             let key = parts.next().unwrap().trim();
             let value = parts.next().unwrap_or("").trim();
-            headers.push((key, value).try_into().with_context(|| format!("Parsing header line `{}` from message", line.trim()))?);
+            headers.push(
+                (key, value).try_into().with_context(|| {
+                    format!("Parsing header line `{}` from message", line.trim())
+                })?,
+            );
         }
 
         Ok(Message {
@@ -90,10 +97,7 @@ impl<'input> TryFrom<&'input str> for Mailer<'input> {
         }
 
         if parts[0] != "From" {
-            bail!(
-                "Invalid mailer line: {}. Should start with `From `",
-                value
-            );
+            bail!("Invalid mailer line: {}. Should start with `From `", value);
         }
 
         let daemon = parts[1];
