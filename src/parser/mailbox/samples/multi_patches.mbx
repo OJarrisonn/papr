@@ -52,6 +52,7 @@ Signed-off-by: John Doe <john.doe(a)email.com>
 From git@z Thu Jan  1 00:00:00 1970
 Subject: [PATCH v1 1/10] patch-tree: foo3 message
 From: John Doe <"john.doe at email.com">
+Author: John Doe <john.doe@email.com>
 Date: Wed, 08 Jun 2022 12:00:01 -0300
 Message-Id: <20220608-john-doe@email.com>
 MIME-Version: 1.0

@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use message::Message;
 
 use crate::utils;
@@ -19,6 +21,16 @@ impl<'input> TryFrom<&'input str> for Mailbox<'input> {
             .collect::<Result<Vec<_>, _>>()?;
 
         Ok(Mailbox { messages })
+    }
+}
+
+impl Display for Mailbox<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for message in &self.messages {
+            write!(f, "{}\n\n", message)?;
+        }
+
+        Ok(())
     }
 }
 

@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use chrono::{DateTime, Utc};
 use header::Header;
 
@@ -54,6 +56,16 @@ impl<'input> TryFrom<&'input str> for Message<'input> {
         }
 
         Ok(Message { mailer, headers, body })
+    }
+}
+
+impl Display for Message<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for header in &self.headers {
+            write!(f, "{}\n", header)?;
+        }
+
+        write!(f, "\n{}", self.body)
     }
 }
 

@@ -1,6 +1,7 @@
 use std::fmt::Display;
 
 use chrono::{DateTime, Utc};
+use color_print::{cformat, cwrite};
 use regex::Regex;
 
 const PERSON_REGEX: &str = r"(?P<name>\w+(\s\w+)*)\s*<(?P<email>[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)>";
@@ -17,7 +18,7 @@ pub enum Header<'input> {
     From(Person<'input>),
     Date(DateTime<Utc>),
     Author(Person<'input>),
-    Subject(&'input str),
+    Subject(Subject<'input>),
     Other(&'input str, &'input str),
 }
 
@@ -38,7 +39,7 @@ impl<'input> TryFrom<(&'input str, &'input str)> for Header<'input> {
                 )
             ),
             "author" => Ok(Header::Author(value.try_into()?)),
-            "subject" => Ok(Header::Subject(value)),
+            "subject" => Ok(Header::Subject(value.try_into()?)),
             _ => Ok(Header::Other(key, value)),
         }
     }
@@ -47,11 +48,11 @@ impl<'input> TryFrom<(&'input str, &'input str)> for Header<'input> {
 impl Display for Header<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Header::From(person) => write!(f, "From: {}", person),
-            Header::Date(date) => write!(f, "Date: {}", date.to_rfc2822()),
-            Header::Author(person) => write!(f, "Author: {}", person),
-            Header::Subject(subject) => write!(f, "Subject: {}", subject),
-            Header::Other(key, value) => write!(f, "{}: {}", key, value),
+            Header::From(person) => cwrite!(f, "<s><b>From:</b></s> {}", person),
+            Header::Date(date) => cwrite!(f, "<s><g>Date:</g></s> <g>{}</g>", date.to_rfc2822()),
+            Header::Author(person) => cwrite!(f, "<s><r>Author:</r></s> {}", person),
+            Header::Subject(subject) => cwrite!(f, "<s><y>Subject:</y></s> {}", subject),
+            Header::Other(key, value) => cwrite!(f, "<c>{}:</c> {}", key, value),
         }
     }
 }
@@ -59,7 +60,7 @@ impl Display for Header<'_> {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Person<'input> {
     pub name: Option<&'input str>,
-    pub email: &'input str,
+    pub email: Email<'input>,
 }
 
 impl<'input> TryFrom<&'input str> for Person<'input> {
@@ -78,7 +79,7 @@ impl<'input> TryFrom<&'input str> for Person<'input> {
             .ok_or("Invalid person")?;
 
         let name = captures.name("name").map(|name| name.as_str());
-        let email = captures.name("email").ok_or("Invalid email")?.as_str();
+        let email = captures.name("email").ok_or("Invalid email")?.as_str().try_into()?;
 
         Ok(Person { name, email })
     }
@@ -120,7 +121,7 @@ impl<'input> TryFrom<&'input str> for Email<'input> {
 
 impl Display for Email<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}@{}", self.user, self.domain)
+        cwrite!(f, "<m>{}@{}</m>", self.user, self.domain)
     }
 }
 
@@ -181,10 +182,10 @@ impl Display for Subject<'_> {
             Subject::Tagged { tags, description } => write!(f, "{}: {}", tags.join(": "), description),
             Subject::Patch { version, index, tags, description } => {
                 let version = version.map(|v| format!(" v{}", v)).unwrap_or_default();
-                let index = index.map(|(i, t)| format!(" {}/{}", i, t)).unwrap_or_default();
+                let index = index.map(|(i, t)| cformat!(" <r>{}/{}</r>", i, t)).unwrap_or_default();
                 let tags = if tags.len() > 0 { tags.join(": ") + ": " } else { "".to_string() };
 
-                write!(f, "[PATCH{}{}] {}{}", version, index, tags, description)
+                cwrite!(f, "<y>[PATCH{}</y>{}<y>]</y> <g>{}</>{}", version, index, tags, description)
             }
         }
     }
@@ -210,13 +211,20 @@ mod tests {
     }
 
     #[test]
+    fn format_header() {
+        let header = Header::Other("SomeHeader", "SomeValue");
+        println!("{}", header);
+        assert_eq!(header.to_string(), format!("\u{1b}[36mSomeHeader:\u{1b}[39m SomeValue"));
+    }
+
+    #[test]
     fn parse_person() {
         let person = Person::try_from("Foo Bar <foo.bar@bar.com>");
         assert!(person.is_ok());
 
         let person = person.unwrap();
         assert_eq!(person.name, Some("Foo Bar"));
-        assert_eq!(person.email, "foo.bar@bar.com");
+        assert_eq!(person.email, "foo.bar@bar.com".try_into().unwrap());
     }
 
     #[test]
@@ -243,7 +251,8 @@ mod tests {
     #[test]
     fn format_subject() {
         let subject = Subject::Patch { version: Some(1), index: Some((1, 1)), tags: vec!["foo", "bar"], description: "baz" };
-        assert_eq!(subject.to_string(), "[PATCH v1 1/1] foo: bar: baz");
+        assert_eq!(subject.to_string(), "\u{1b}[43m[PATCH v1 1/1]\u{1b}[49m \u{1b}[32mfoo: bar: \u{1b}[39mbaz");
+        println!("{}", subject);
 
         let subject = Subject::Patch { version: None, index: Some((0, 2)), tags: vec![], description: "some example patch" };
         assert_eq!(subject.to_string(), "[PATCH 0/2] some example patch");

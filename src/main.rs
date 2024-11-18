@@ -21,7 +21,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     for (path, content) in files {
         let mailbox = papr::parser::mailbox::Mailbox::try_from(content.as_str())?;
-        dbg!(path, mailbox);
+        dbg!(&mailbox);
+        println!("{}:\n{}", path, mailbox);
     }
 
     Ok(())
