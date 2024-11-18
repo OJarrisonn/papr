@@ -1,6 +1,7 @@
 use std::fmt::Display;
 
 use message::Message;
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 use crate::utils;
 
@@ -16,7 +17,7 @@ impl<'input> TryFrom<&'input str> for Mailbox<'input> {
 
     fn try_from(input: &'input str) -> Result<Self, Self::Error> {
         let messages = utils::capture_messages(input)
-            .iter()
+            .par_iter()
             .map(|message| Message::try_from(*message))
             .collect::<Result<Vec<_>, _>>()?;
 

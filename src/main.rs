@@ -7,6 +7,7 @@ use clap::Parser;
 use cli::Args;
 use color_eyre::eyre::{Context, Result};
 use papr::parser::mailbox::Mailbox;
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 pub mod cli;
 
@@ -37,7 +38,7 @@ fn main() -> Result<()> {
                 message
             }).collect();
         }
-        
+
         println!("{}:\n{}", path, mailbox);
     }
 
@@ -46,7 +47,7 @@ fn main() -> Result<()> {
 
 fn read_all(files: Vec<String>) -> Result<Vec<(String, String)>> {
     files
-        .into_iter()
+        .into_par_iter()
         .map(|file| {
             let path = Path::new(&file);
             let content = std::fs::read_to_string(path)
