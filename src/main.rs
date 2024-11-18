@@ -1,4 +1,8 @@
-use std::{error::Error, io::{stdin, Read}, path::Path};
+use std::{
+    error::Error,
+    io::{stdin, Read},
+    path::Path,
+};
 
 use clap::Parser;
 use cli::Args;
@@ -29,10 +33,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 fn read_all(files: Vec<String>) -> Result<Vec<(String, String)>, std::io::Error> {
-    files.into_iter().map(|file| {
-        let path = Path::new(&file);
-        let content = std::fs::read_to_string(path)?;
+    files
+        .into_iter()
+        .map(|file| {
+            let path = Path::new(&file);
+            let content = std::fs::read_to_string(path)?;
 
-        Ok((file, content))
-    }).collect()
+            Ok((file, content))
+        })
+        .collect()
 }

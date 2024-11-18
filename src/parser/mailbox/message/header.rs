@@ -4,10 +4,12 @@ use chrono::{DateTime, Utc};
 use color_print::{cformat, cwrite};
 use regex::Regex;
 
-const PERSON_REGEX: &str = r"(?P<name>\w+(\s\w+)*)\s*<(?P<email>[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)>";
+const PERSON_REGEX: &str =
+    r"(?P<name>\w+(\s\w+)*)\s*<(?P<email>[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)>";
 const PERSON_NO_NAME_REGEX: &str = r"<(?P<email>[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)>";
 const PERSON_AT_REGEX: &str = r#"(?P<name>\w+(\s\w+)*)\s*at\s*<"(?P<email>[a-zA-Z0-9_.+-]+ at [a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)">"#;
-const PERSON_AT_NO_NAME_REGEX: &str = r#""(?P<email>[a-zA-Z0-9_.+-]+ at [a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)""#;
+const PERSON_AT_NO_NAME_REGEX: &str =
+    r#""(?P<email>[a-zA-Z0-9_.+-]+ at [a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)""#;
 
 const PATCH_SUBJECT_REGEX: &str = r"^\[PATCH( v(?P<version>\d+))? (?P<index>\d+)/(?P<total>\d+)\] (?P<tags>([^:]+:)*)(?P<description>.+)$";
 const TAGGED_SUBJECT_REGEX: &str = r"^(?P<tags>([^:]+:)+)(?P<description>.+)$";
@@ -31,13 +33,11 @@ impl<'input> TryFrom<(&'input str, &'input str)> for Header<'input> {
 
         match lkey.as_str() {
             "from" => Ok(Header::From(value.try_into()?)),
-            "date" => Ok(
-                Header::Date(
-                    DateTime::parse_from_rfc2822(value)
-                        .map_err(|e| e.to_string())
-                        .map(|dt| dt.to_utc())?
-                )
-            ),
+            "date" => Ok(Header::Date(
+                DateTime::parse_from_rfc2822(value)
+                    .map_err(|e| e.to_string())
+                    .map(|dt| dt.to_utc())?,
+            )),
             "author" => Ok(Header::Author(value.try_into()?)),
             "subject" => Ok(Header::Subject(value.try_into()?)),
             _ => Ok(Header::Other(key, value)),
@@ -72,14 +72,19 @@ impl<'input> TryFrom<&'input str> for Person<'input> {
         let re_person_at = Regex::new(PERSON_AT_REGEX).unwrap();
         let re_person_at_no_name = Regex::new(PERSON_AT_NO_NAME_REGEX).unwrap();
 
-        let captures = re_person.captures(value)
+        let captures = re_person
+            .captures(value)
             .or_else(|| re_person_no_name.captures(value))
             .or_else(|| re_person_at.captures(value))
             .or_else(|| re_person_at_no_name.captures(value))
             .ok_or("Invalid person")?;
 
         let name = captures.name("name").map(|name| name.as_str());
-        let email = captures.name("email").ok_or("Invalid email")?.as_str().try_into()?;
+        let email = captures
+            .name("email")
+            .ok_or("Invalid email")?
+            .as_str()
+            .try_into()?;
 
         Ok(Person { name, email })
     }
@@ -115,7 +120,10 @@ impl<'input> TryFrom<&'input str> for Email<'input> {
             return Err(format!("Invalid email {}", value));
         }
 
-        Ok(Email { user: parts[0], domain: parts[1] })
+        Ok(Email {
+            user: parts[0],
+            domain: parts[1],
+        })
     }
 }
 
@@ -137,7 +145,7 @@ pub enum Subject<'input> {
         index: Option<(usize, usize)>,
         tags: Vec<&'input str>,
         description: &'input str,
-    }
+    },
 }
 
 impl<'input> TryFrom<&'input str> for Subject<'input> {
@@ -149,24 +157,64 @@ impl<'input> TryFrom<&'input str> for Subject<'input> {
         let re_simple = Regex::new(SIMPLE_SUBJECT_REGEX).unwrap();
 
         if let Some(captures) = re_patch.captures(value) {
-            let version = captures.name("version").map(|v| v.as_str().parse::<usize>().ok()).flatten();
-            let base = captures.name("index").map(|t| t.as_str().parse::<usize>().ok()).flatten();
-            let total = captures.name("total").map(|t| t.as_str().parse::<usize>().ok()).flatten();
-            let tags = captures.name("tags").ok_or("Invalid tags")?.as_str().split(':').map(|s| s.trim()).filter(|s| !s.is_empty()).collect();
-            let description = captures.name("description").map(|d| d.as_str()).map(|s| s.trim()).ok_or("Invalid description")?;
+            let version = captures
+                .name("version")
+                .map(|v| v.as_str().parse::<usize>().ok())
+                .flatten();
+            let base = captures
+                .name("index")
+                .map(|t| t.as_str().parse::<usize>().ok())
+                .flatten();
+            let total = captures
+                .name("total")
+                .map(|t| t.as_str().parse::<usize>().ok())
+                .flatten();
+            let tags = captures
+                .name("tags")
+                .ok_or("Invalid tags")?
+                .as_str()
+                .split(':')
+                .map(|s| s.trim())
+                .filter(|s| !s.is_empty())
+                .collect();
+            let description = captures
+                .name("description")
+                .map(|d| d.as_str())
+                .map(|s| s.trim())
+                .ok_or("Invalid description")?;
 
             let index = match (base, total) {
                 (Some(base), Some(total)) => Some((base, total)),
                 _ => None,
             };
-            Ok(Subject::Patch { version, index, tags, description })
+            Ok(Subject::Patch {
+                version,
+                index,
+                tags,
+                description,
+            })
         } else if let Some(captures) = re_tagged.captures(value) {
-            let tags = captures.name("tags").ok_or("Invalid tags")?.as_str().split(':').map(|s| s.trim()).filter(|s| !s.is_empty()).collect();
-            let description = captures.name("description").map(|d| d.as_str()).map(|s| s.trim()).ok_or("Invalid description")?;
-            
+            let tags = captures
+                .name("tags")
+                .ok_or("Invalid tags")?
+                .as_str()
+                .split(':')
+                .map(|s| s.trim())
+                .filter(|s| !s.is_empty())
+                .collect();
+            let description = captures
+                .name("description")
+                .map(|d| d.as_str())
+                .map(|s| s.trim())
+                .ok_or("Invalid description")?;
+
             Ok(Subject::Tagged { tags, description })
         } else if let Some(captures) = re_simple.captures(value) {
-            let description = captures.name("description").map(|d| d.as_str()).map(|s| s.trim()).ok_or("Invalid description")?;
+            let description = captures
+                .name("description")
+                .map(|d| d.as_str())
+                .map(|s| s.trim())
+                .ok_or("Invalid description")?;
 
             Ok(Subject::Simple(description))
         } else {
@@ -179,13 +227,33 @@ impl Display for Subject<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Subject::Simple(description) => write!(f, "{}", description),
-            Subject::Tagged { tags, description } => write!(f, "{}: {}", tags.join(": "), description),
-            Subject::Patch { version, index, tags, description } => {
+            Subject::Tagged { tags, description } => {
+                write!(f, "{}: {}", tags.join(": "), description)
+            }
+            Subject::Patch {
+                version,
+                index,
+                tags,
+                description,
+            } => {
                 let version = version.map(|v| format!(" v{}", v)).unwrap_or_default();
-                let index = index.map(|(i, t)| cformat!(" <r>{}/{}</r>", i, t)).unwrap_or_default();
-                let tags = if tags.len() > 0 { tags.join(": ") + ": " } else { "".to_string() };
+                let index = index
+                    .map(|(i, t)| cformat!(" <r>{}/{}</r>", i, t))
+                    .unwrap_or_default();
+                let tags = if tags.len() > 0 {
+                    tags.join(": ") + ": "
+                } else {
+                    "".to_string()
+                };
 
-                cwrite!(f, "<y>[PATCH{}</y>{}<y>]</y> <g>{}</>{}", version, index, tags, description)
+                cwrite!(
+                    f,
+                    "<y>[PATCH{}</y>{}<y>]</y> <g>{}</>{}",
+                    version,
+                    index,
+                    tags,
+                    description
+                )
             }
         }
     }
@@ -207,14 +275,24 @@ mod tests {
         assert!(header.is_ok());
 
         let header = header.unwrap();
-        assert_eq!(header, Header::Date(DateTime::parse_from_rfc2822("Wed, 08 Jun 2022 12:00:01 -0300").unwrap().to_utc()));
+        assert_eq!(
+            header,
+            Header::Date(
+                DateTime::parse_from_rfc2822("Wed, 08 Jun 2022 12:00:01 -0300")
+                    .unwrap()
+                    .to_utc()
+            )
+        );
     }
 
     #[test]
     fn format_header() {
         let header = Header::Other("SomeHeader", "SomeValue");
         println!("{}", header);
-        assert_eq!(header.to_string(), format!("\u{1b}[36mSomeHeader:\u{1b}[39m SomeValue"));
+        assert_eq!(
+            header.to_string(),
+            format!("\u{1b}[36mSomeHeader:\u{1b}[39m SomeValue")
+        );
     }
 
     #[test]
@@ -233,30 +311,65 @@ mod tests {
         assert!(subject.is_ok());
 
         let subject = subject.unwrap();
-        assert_eq!(subject, Subject::Patch { version: Some(1), index: Some((1, 1)), tags: vec!["foo", "bar"], description: "baz" });
+        assert_eq!(
+            subject,
+            Subject::Patch {
+                version: Some(1),
+                index: Some((1, 1)),
+                tags: vec!["foo", "bar"],
+                description: "baz"
+            }
+        );
 
         let subject = Subject::try_from("[PATCH 0/2] some example patch");
         assert!(subject.is_ok());
 
         let subject = subject.unwrap();
-        assert_eq!(subject, Subject::Patch { version: None, index: Some((0, 2)), tags: vec![], description: "some example patch" });
+        assert_eq!(
+            subject,
+            Subject::Patch {
+                version: None,
+                index: Some((0, 2)),
+                tags: vec![],
+                description: "some example patch"
+            }
+        );
 
         let subject = Subject::try_from("foo: bar");
         assert!(subject.is_ok());
-        
+
         let subject = subject.unwrap();
-        assert_eq!(subject, Subject::Tagged { tags: vec!["foo"], description: "bar" });
+        assert_eq!(
+            subject,
+            Subject::Tagged {
+                tags: vec!["foo"],
+                description: "bar"
+            }
+        );
     }
 
     #[test]
     fn format_subject() {
-        let subject = Subject::Patch { version: Some(1), index: Some((1, 1)), tags: vec!["foo", "bar"], description: "baz" };
+        let subject = Subject::Patch {
+            version: Some(1),
+            index: Some((1, 1)),
+            tags: vec!["foo", "bar"],
+            description: "baz",
+        };
         assert_eq!(subject.to_string(), "\u{1b}[33m[PATCH v1\u{1b}[39m \u{1b}[31m1/1\u{1b}[39m\u{1b}[33m]\u{1b}[39m \u{1b}[32mfoo: bar: \u{1b}[39mbaz");
 
-        let subject = Subject::Patch { version: None, index: Some((0, 2)), tags: vec![], description: "some example patch" };
+        let subject = Subject::Patch {
+            version: None,
+            index: Some((0, 2)),
+            tags: vec![],
+            description: "some example patch",
+        };
         assert_eq!(subject.to_string(), "\u{1b}[33m[PATCH\u{1b}[39m \u{1b}[31m0/2\u{1b}[39m\u{1b}[33m]\u{1b}[39m \u{1b}[32m\u{1b}[39msome example patch");
 
-        let subject = Subject::Tagged { tags: vec!["foo"], description: "bar" };
+        let subject = Subject::Tagged {
+            tags: vec!["foo"],
+            description: "bar",
+        };
         assert_eq!(subject.to_string(), "foo: bar");
 
         let subject = Subject::Simple("baz foo barbar");

@@ -9,7 +9,7 @@ fn find_messages(input: &str) -> Vec<usize> {
         input = &input[next..];
         start += next;
     }
-    
+
     messages
 }
 
