@@ -11,7 +11,7 @@ use papr::parser::mailbox::Mailbox;
 pub mod cli;
 
 fn main() -> Result<()> {
-    let Args { files } = Args::parse();
+    let Args { files, frontmatter } = Args::parse();
 
     // If no files are provided, read from STDIN
     let files = if files.is_empty() {
@@ -27,8 +27,17 @@ fn main() -> Result<()> {
     };
 
     for (path, content) in files {
-        let mailbox = Mailbox::try_from(content.as_str())?;
-        dbg!(&mailbox);
+        let mut mailbox = Mailbox::try_from(content.as_str())?;
+
+        if frontmatter {
+            let messages = mailbox.messages;
+            
+            mailbox.messages = messages.into_iter().map(|mut message| {
+                message.body = message.body.front_matter_only();
+                message
+            }).collect();
+        }
+        
         println!("{}:\n{}", path, mailbox);
     }
 

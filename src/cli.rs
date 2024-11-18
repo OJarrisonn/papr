@@ -12,4 +12,7 @@ use clap::Parser;
 pub struct Args {
     /// The files to apply syntax highlighting to
     pub files: Vec<String>,
+    /// Reduce messages to show only it's frontmatter
+    #[clap(short, long)]
+    pub frontmatter: bool,
 }

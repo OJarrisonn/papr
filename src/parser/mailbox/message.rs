@@ -1,9 +1,11 @@
 use std::fmt::Display;
 
+use body::Body;
 use chrono::{DateTime, Utc};
 use color_eyre::eyre::{bail, Context};
 use header::Header;
 
+pub mod body;
 pub mod header;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -24,7 +26,7 @@ pub struct Mailer<'input> {
 pub struct Message<'input> {
     pub mailer: Option<Mailer<'input>>,
     pub headers: Vec<Header<'input>>,
-    pub body: &'input str,
+    pub body: Body<'input>,
 }
 
 impl<'input> TryFrom<&'input str> for Message<'input> {
@@ -67,7 +69,7 @@ impl<'input> TryFrom<&'input str> for Message<'input> {
         Ok(Message {
             mailer,
             headers,
-            body,
+            body: body.into(),
         })
     }
 }
@@ -195,7 +197,7 @@ mod tests {
             .unwrap_or(include_str!("samples/single_patch.mbx").len());
         assert_eq!(
             message.body,
-            &include_str!("samples/single_patch.mbx")[break_point..]
+            (&include_str!("samples/single_patch.mbx")[break_point..]).into()
         );
     }
 }
