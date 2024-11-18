@@ -129,7 +129,6 @@ mod tests {
     #[test]
     fn test_message_try_from_git() {
         let message = Message::try_from(include_str!("samples/single_patch.mbx"));
-        let message = dbg!(message);
         assert!(message.is_ok());
         let message = message.unwrap();
         assert_eq!(message.mailer.unwrap().daemon, "git@z");
@@ -137,7 +136,7 @@ mod tests {
         assert_eq!(message.headers.len(), 7);
         assert_eq!(message.headers[0], ("Subject", "[PATCH v1 1/10] patch-tree: foo message").try_into().unwrap());
         assert_eq!(message.headers[1], ("From", "John Doe <\"john.doe at email.com\">").try_into().unwrap());
-        assert_eq!(message.headers[2], ("Date", "Fri, 08 Jun 2022 12:00:01 -0300").try_into().unwrap());
+        assert_eq!(message.headers[2], ("Date", "Wed, 08 Jun 2022 12:00:01 -0300").try_into().unwrap());
         assert_eq!(message.headers[3], ("Message-Id", "<20220608-john-doe@email.com>").try_into().unwrap());
         assert_eq!(message.headers[4], ("MIME-Version", "1.0").try_into().unwrap());
         assert_eq!(message.headers[5], ("Content-Type", "text/plain; charset=\"utf-8\"").try_into().unwrap());

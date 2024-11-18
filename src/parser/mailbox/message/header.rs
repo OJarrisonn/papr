@@ -251,11 +251,10 @@ mod tests {
     #[test]
     fn format_subject() {
         let subject = Subject::Patch { version: Some(1), index: Some((1, 1)), tags: vec!["foo", "bar"], description: "baz" };
-        assert_eq!(subject.to_string(), "\u{1b}[43m[PATCH v1 1/1]\u{1b}[49m \u{1b}[32mfoo: bar: \u{1b}[39mbaz");
-        println!("{}", subject);
+        assert_eq!(subject.to_string(), "\u{1b}[33m[PATCH v1\u{1b}[39m \u{1b}[31m1/1\u{1b}[39m\u{1b}[33m]\u{1b}[39m \u{1b}[32mfoo: bar: \u{1b}[39mbaz");
 
         let subject = Subject::Patch { version: None, index: Some((0, 2)), tags: vec![], description: "some example patch" };
-        assert_eq!(subject.to_string(), "[PATCH 0/2] some example patch");
+        assert_eq!(subject.to_string(), "\u{1b}[33m[PATCH\u{1b}[39m \u{1b}[31m0/2\u{1b}[39m\u{1b}[33m]\u{1b}[39m \u{1b}[32m\u{1b}[39msome example patch");
 
         let subject = Subject::Tagged { tags: vec!["foo"], description: "bar" };
         assert_eq!(subject.to_string(), "foo: bar");
