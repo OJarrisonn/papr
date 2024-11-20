@@ -48,7 +48,7 @@ mod tests {
 
     #[test]
     fn capture_multi_patches_messages_test() {
-        let input = include_str!("parser/mailbox/samples/multi_patches.mbx");
+        let input = include_str!("mailbox/samples/multi_patches.mbx");
         let messages = capture_messages(input);
         dbg!(messages);
     }

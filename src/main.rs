@@ -6,7 +6,7 @@ use std::{
 use clap::Parser;
 use cli::Args;
 use color_eyre::eyre::{Context, Result};
-use papr::parser::mailbox::Mailbox;
+use papr::mailbox::Mailbox;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 pub mod cli;
