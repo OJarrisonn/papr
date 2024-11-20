@@ -6,14 +6,19 @@ use std::{
 use clap::Parser;
 use cli::Args;
 use color_eyre::eyre::{Context, Result};
-use papr::{config::Config, mailbox::Mailbox};
+use papr::{config::Config, mailbox::Mailbox, renderer};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 pub mod cli;
 
 fn main() -> Result<()> {
-    let Args { files, frontmatter } = Args::parse();
+    let Args { files, frontmatter, show_config } = Args::parse();
     let _config = Config::load()?;
+
+    if show_config {
+        println!("{:#?}", _config);
+        return Ok(());
+    }
 
     // If no files are provided, read from STDIN
     let files = if files.is_empty() {
@@ -43,7 +48,9 @@ fn main() -> Result<()> {
                 .collect();
         }
 
-        println!("{}:\n{:?}", path, mailbox);
+        println!("{}", path);
+        let rendered= renderer::mailbox(_config.renderer, mailbox);
+        println!("{}", rendered);
     }
 
     Ok(())

@@ -15,4 +15,7 @@ pub struct Args {
     /// Reduce messages to show only it's frontmatter
     #[clap(short, long)]
     pub frontmatter: bool,
+    #[clap(long)]
+    /// Show the current configurations being used
+    pub show_config: bool,
 }
