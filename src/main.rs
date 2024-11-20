@@ -6,13 +6,14 @@ use std::{
 use clap::Parser;
 use cli::Args;
 use color_eyre::eyre::{Context, Result};
-use papr::mailbox::Mailbox;
+use papr::{config::Config, mailbox::Mailbox};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 pub mod cli;
 
 fn main() -> Result<()> {
     let Args { files, frontmatter } = Args::parse();
+    let _config = Config::load()?;
 
     // If no files are provided, read from STDIN
     let files = if files.is_empty() {
@@ -32,11 +33,14 @@ fn main() -> Result<()> {
 
         if frontmatter {
             let messages = mailbox.messages;
-            
-            mailbox.messages = messages.into_iter().map(|mut message| {
-                message.body = message.body.front_matter_only();
-                message
-            }).collect();
+
+            mailbox.messages = messages
+                .into_iter()
+                .map(|mut message| {
+                    message.body = message.body.front_matter_only();
+                    message
+                })
+                .collect();
         }
 
         println!("{}:\n{}", path, mailbox);

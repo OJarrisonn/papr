@@ -23,9 +23,10 @@ pub fn capture_messages<'input>(input: &'input str) -> Vec<&'input str> {
 
     let ranges = starts.iter().zip(ends.iter());
 
-    ranges.par_bridge().map(|(start, end)| {
-        &input[*start..*end]
-    }).collect()
+    ranges
+        .par_bridge()
+        .map(|(start, end)| &input[*start..*end])
+        .collect()
 }
 
 #[cfg(test)]
