@@ -383,7 +383,7 @@ mod tests {
             tags: vec!["foo", "bar"],
             description: "baz",
         };
-        assert_eq!(subject.to_string(), "\u{1b}[33m[PATCH v1\u{1b}[39m \u{1b}[31m1/1\u{1b}[39m\u{1b}[33m]\u{1b}[39m \u{1b}[32mfoo: bar: \u{1b}[39mbaz");
+        assert_eq!(subject.to_string(), "\u{1b}[33m[PATCH v1\u{1b}[39m \u{1b}[31m1/1\u{1b}[39m\u{1b}[33m]\u{1b}[39m \u{1b}[32m|foo|bar| \u{1b}[39mbaz");
 
         let subject = Subject::Patch {
             version: None,
