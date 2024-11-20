@@ -43,7 +43,7 @@ fn main() -> Result<()> {
                 .collect();
         }
 
-        println!("{}:\n{}", path, mailbox);
+        println!("{}:\n{:?}", path, mailbox);
     }
 
     Ok(())

@@ -1,5 +1,3 @@
-use std::fmt::Display;
-
 use body::Body;
 use chrono::{DateTime, Utc};
 use color_eyre::eyre::{bail, Context};
@@ -71,16 +69,6 @@ impl<'input> TryFrom<&'input str> for Message<'input> {
             headers,
             body: body.into(),
         })
-    }
-}
-
-impl Display for Message<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for header in &self.headers {
-            write!(f, "{}\n", header)?;
-        }
-
-        write!(f, "\n{}", self.body)
     }
 }
 

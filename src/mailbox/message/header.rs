@@ -1,8 +1,5 @@
-use std::fmt::Display;
-
 use chrono::{DateTime, Utc};
 use color_eyre::eyre::{bail, eyre, Context};
-use color_print::{cformat, cwrite};
 use regex::Regex;
 
 const PERSON_REGEX: &str =
@@ -66,18 +63,6 @@ impl<'input> TryFrom<(&'input str, &'input str)> for Header<'input> {
     }
 }
 
-impl Display for Header<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Header::From(person) => cwrite!(f, "<s><b>From:</b></s> {}", person),
-            Header::Date(date) => cwrite!(f, "<s><g>Date:</g></s> <g>{}</g>", date.to_rfc2822()),
-            Header::Author(person) => cwrite!(f, "<s><r>Author:</r></s> {}", person),
-            Header::Subject(subject) => cwrite!(f, "<s><y>Subject:</y></s> {}", subject),
-            Header::Other(key, value) => cwrite!(f, "<c>{}:</c> {}", key, value),
-        }
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Person<'input> {
     pub name: Option<&'input str>,
@@ -114,16 +99,6 @@ impl<'input> TryFrom<&'input str> for Person<'input> {
     }
 }
 
-impl Display for Person<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if let Some(name) = self.name {
-            write!(f, "{} <{}>", name, self.email)
-        } else {
-            write!(f, "<{}>", self.email)
-        }
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Email<'input> {
     pub user: &'input str,
@@ -148,12 +123,6 @@ impl<'input> TryFrom<&'input str> for Email<'input> {
             user: parts[0],
             domain: parts[1],
         })
-    }
-}
-
-impl Display for Email<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        cwrite!(f, "<m>{}@{}</m>", self.user, self.domain)
     }
 }
 
@@ -250,42 +219,6 @@ impl<'input> TryFrom<&'input str> for Subject<'input> {
     }
 }
 
-impl Display for Subject<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Subject::Simple(description) => write!(f, "{}", description),
-            Subject::Tagged { tags, description } => {
-                write!(f, "{}: {}", tags.join(": "), description)
-            }
-            Subject::Patch {
-                version,
-                index,
-                tags,
-                description,
-            } => {
-                let version = version.map(|v| format!(" v{}", v)).unwrap_or_default();
-                let index = index
-                    .map(|(i, t)| cformat!(" <r>{}/{}</r>", i, t))
-                    .unwrap_or_default();
-                let tags = if tags.len() > 0 {
-                    format!("|{}| ", tags.join("|"))
-                } else {
-                    "".to_string()
-                };
-
-                cwrite!(
-                    f,
-                    "<y>[PATCH{}</y>{}<y>]</y> <g>{}</>{}",
-                    version,
-                    index,
-                    tags,
-                    description
-                )
-            }
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -309,16 +242,6 @@ mod tests {
                     .unwrap()
                     .to_utc()
             )
-        );
-    }
-
-    #[test]
-    fn format_header() {
-        let header = Header::Other("SomeHeader", "SomeValue");
-        println!("{}", header);
-        assert_eq!(
-            header.to_string(),
-            format!("\u{1b}[36mSomeHeader:\u{1b}[39m SomeValue")
         );
     }
 
@@ -373,33 +296,5 @@ mod tests {
                 description: "bar"
             }
         );
-    }
-
-    #[test]
-    fn format_subject() {
-        let subject = Subject::Patch {
-            version: Some(1),
-            index: Some((1, 1)),
-            tags: vec!["foo", "bar"],
-            description: "baz",
-        };
-        assert_eq!(subject.to_string(), "\u{1b}[33m[PATCH v1\u{1b}[39m \u{1b}[31m1/1\u{1b}[39m\u{1b}[33m]\u{1b}[39m \u{1b}[32m|foo|bar| \u{1b}[39mbaz");
-
-        let subject = Subject::Patch {
-            version: None,
-            index: Some((0, 2)),
-            tags: vec![],
-            description: "some example patch",
-        };
-        assert_eq!(subject.to_string(), "\u{1b}[33m[PATCH\u{1b}[39m \u{1b}[31m0/2\u{1b}[39m\u{1b}[33m]\u{1b}[39m \u{1b}[32m\u{1b}[39msome example patch");
-
-        let subject = Subject::Tagged {
-            tags: vec!["foo"],
-            description: "bar",
-        };
-        assert_eq!(subject.to_string(), "foo: bar");
-
-        let subject = Subject::Simple("baz foo barbar");
-        assert_eq!(subject.to_string(), "baz foo barbar");
     }
 }

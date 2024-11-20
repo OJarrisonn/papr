@@ -1,5 +1,3 @@
-use std::fmt::Display;
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Body<'input> {
     Simple(&'input str),
@@ -62,39 +60,6 @@ impl<'input> From<&'input str> for Body<'input> {
             }
         } else {
             Body::Simple(value)
-        }
-    }
-}
-
-impl Display for Body<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Body::Simple(body) => write!(f, "{}", body),
-            Body::WithFrontMatter {
-                front_matter,
-                footers,
-                body,
-            } => {
-                write!(f, "{}\n---\n", front_matter)?;
-
-                for (key, value) in footers {
-                    write!(f, "{}: {}\n", key, value)?;
-                }
-
-                write!(f, "---\n{}", body)
-            }
-            Body::OnlyFrontMatter {
-                front_matter,
-                footers,
-            } => {
-                write!(f, "{}\n---\n", front_matter)?;
-
-                for (key, value) in footers {
-                    write!(f, "{}: {}\n", key, value)?;
-                }
-
-                Ok(())
-            }
         }
     }
 }
